@@ -15,16 +15,13 @@ ENV CONNECTION_TIMEOUT=60000
 ENV CHROME_PATH=/usr/bin/google-chrome
 ENV USE_CHROME_STABLE=${USE_CHROME_STABLE}
 
-RUN mkdir -p $application_directory
-
 WORKDIR $application_directory
-
-# Install app dependencies
-COPY package.json .
-COPY tsconfig.json .
 
 # Bundle app source
 COPY . .
+
+# It's a good idea to use dumb-init to help prevent zombie chrome processes.
+ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64 /usr/local/bin/dumb-init
 
 # Dependencies + NodeJS
 RUN apt-get -qq update && \
@@ -88,33 +85,27 @@ RUN apt-get -qq update && \
   apt-get -y -qq install nodejs &&\
   apt-get -y -qq install build-essential &&\
   # Fonts
-  fc-cache -f -v
-
-# It's a good idea to use dumb-init to help prevent zombie chrome processes.
-ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64 /usr/local/bin/dumb-init
-RUN chmod +x /usr/local/bin/dumb-init
-
-# Install Chrome Stable when specified
-RUN if [ "$USE_CHROME_STABLE" = "true" ]; then \
+  fc-cache -f -v &&\
+  # use dumb-init
+  chmod +x /usr/local/bin/dumb-init &&\
+  # Install Chrome Stable when specified
+  if [ "$USE_CHROME_STABLE" = "true" ]; then \
     cd /tmp &&\
     wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb &&\
     dpkg -i google-chrome-stable_current_amd64.deb;\
-  fi
-
-# Build
-RUN if [ "$USE_CHROME_STABLE" = "true" ]; then \
+  fi &&\
+  # Build
+  if [ "$USE_CHROME_STABLE" = "true" ]; then \
     export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true;\
   fi &&\
   npm install -g typescript @types/node &&\
   npm install &&\
   npm run post-install &&\
-  npm run build
-
-# Cleanup
-RUN apt-get -qq clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-# Add user
-RUN groupadd -r blessuser && useradd -r -g blessuser -G audio,video blessuser \
+  npm run build && \
+  # Cleanup
+  apt-get -qq clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* &&\
+  # Add user
+  groupadd -r blessuser && useradd -r -g blessuser -G audio,video blessuser \
   && mkdir -p /home/blessuser/Downloads \
   && chown -R blessuser:blessuser /home/blessuser \
   && chown -R blessuser:blessuser $application_directory
