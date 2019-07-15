@@ -1,19 +1,18 @@
 FROM ubuntu:18.04
 
-# Application parameters and variables
-ENV NODE_ENV=production
-ENV HOST=0.0.0.0
-ENV PORT=3000
-ENV application_directory=/usr/src/app
-ENV ENABLE_XVBF=true
-
 # Build Args
 ARG USE_CHROME_STABLE
 
-# Configuration for Chrome
-ENV CONNECTION_TIMEOUT=60000
-ENV CHROME_PATH=/usr/bin/google-chrome
-ENV USE_CHROME_STABLE=${USE_CHROME_STABLE}
+# Application parameters and variables
+ENV NODE_ENV=production \
+    HOST=0.0.0.0 \
+    PORT=3000 \
+    application_directory=/usr/src/app \
+    ENABLE_XVBF=true \
+    # Configuration for Chrome
+    CONNECTION_TIMEOUT=60000 \
+    CHROME_PATH=/usr/bin/google-chrome \
+    USE_CHROME_STABLE=${USE_CHROME_STABLE}
 
 WORKDIR $application_directory
 
